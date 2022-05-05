@@ -1,2 +1,2 @@
 # bp_nerual_networks
-BP Nerual Networks
+BP Neural Networks
