@@ -405,15 +405,15 @@ public:
 		{
 		case STOP_TYPE::COUNT:
 			_TrainMethodPtr = std::make_shared<_TrainByEpochs<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
-																	_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
-																	_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
-																	_NeuronLayers, _DataIn, _DataOut);
+											_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
+											_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
+											_NeuronLayers, _DataIn, _DataOut);
 			break;
 		case STOP_TYPE::ERROR_SUM:
 			_TrainMethodPtr = std::make_shared<_TrainByErrorSum<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
-																	_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
-																	_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
-																	_NeuronLayers, _DataIn, _DataOut);
+											_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
+											_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
+											_NeuronLayers, _DataIn, _DataOut);
 			break;
 		default:
 			break;
