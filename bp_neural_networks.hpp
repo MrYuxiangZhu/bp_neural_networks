@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 
 #define ACTIVATION_RESPONSE 1.0
 
@@ -23,10 +24,18 @@ class _Neuron
 public:
 	_Neuron(size_t inputs) noexcept : _NumInputs(inputs + 1), _Activation(0.0), _Error(0.0)
 	{
-		for (size_t i = 0; i < _NumInputs + 1; ++i)
+		for (size_t i = 0; i < _NumInputs; ++i)
 		{
 			_Weight.emplace_back(_RandomClamped());
 		}
+	}
+
+	_Neuron(const _Neuron& neuron) noexcept
+	{
+		_NumInputs = neuron._NumInputs;
+		_Activation = neuron._Activation;
+		_Error = neuron._Error;
+		_Weight = neuron._Weight;
 	}
 
 	~_Neuron() noexcept { }
@@ -34,14 +43,14 @@ public:
 protected:
 	_NODISCARD double _RandomClamped() noexcept
 	{
-		return static_cast<double>(-1 + 2 * (rand() / ((double)RAND_MAX + 1)));
+		return static_cast<double>(-1 + 2 * (rand() / (static_cast<double>(RAND_MAX) + 1)));
 	}
 
 public:
-	size_t _NumInputs;
-	double _Activation;
-	double _Error;
-	std::vector<double> _Weight;
+	size_t _NumInputs;	// number of neuron input
+	double _Activation; // neuron output, determined by input and linear function
+	double _Error;		// error
+	std::vector<double> _Weight;// weight
 };
 
 class _NeuronLayer
@@ -55,12 +64,18 @@ public:
 			_Neurons.emplace_back(std::make_shared<_Neuron>(inputs));
 		}
 	}
+
+	_NeuronLayer(const _NeuronLayer& layer) noexcept
+	{
+		_NumNeurons = layer._NumNeurons;
+		_Neurons = layer._Neurons;
+	}
 	
 	~_NeuronLayer() noexcept { }
 
 public:
-	size_t _NumNeurons;
-	std::vector<_NeuronPtr> _Neurons;
+	size_t _NumNeurons; // neuron number
+	std::vector<_NeuronPtr> _Neurons; // neuron pointer vector
 };
 
 template <typename _Type>
@@ -71,8 +86,8 @@ class _TrainMethodBase
 public:
 	_TrainMethodBase(size_t& input_layers,
 		size_t& output_layers,
+		size_t& hidden_layers,
 		size_t& hidden_neurons,
-		size_t& hidden_layers_num,
 		double& learning_rate,
 		double& error_threshold,
 		long& train_epochs,
@@ -85,8 +100,8 @@ public:
 		std::vector<std::vector<_Type>>& output_data) noexcept :
 		_NumInputs(input_layers),
 		_NumOutputs(output_layers),
-		_NumHiddenLayers(hidden_neurons),
-		_NeuronsPerHiddenLayer(hidden_layers_num),
+		_NumHiddenLayers(hidden_layers),
+		_NeuronsPerHiddenLayer(hidden_neurons),
 		_LearningRate(learning_rate),
 		_ErrorThresHold(error_threshold),
 		_TrainEpochs(train_epochs),
@@ -103,103 +118,122 @@ public:
 
 	virtual ~_TrainMethodBase() noexcept { }
 
-	virtual bool _NetworkTraining() noexcept = 0;
+	virtual bool _NetworkTraining() = 0;
 
-protected:
-	bool _NetworkTrainingEpoch() noexcept
+	virtual bool _NetworkTrainingEpoch()
 	{
-		_ErrorSum = 0.0;//置零
-		std::vector<double>::iterator cur_weight;//指向某个权重
-		std::vector<_NeuronPtr>::iterator cur_neuron_out; //指向输出神经元
-		std::vector<_NeuronPtr>::iterator cur_neuron_hidden;//某个隐藏神经元
-		//对每一个输入集合调整权值
-		for (size_t vec = 0; vec < _DataIn.size(); ++vec)
+		try
 		{
-			std::vector<_Type> outputs = _Update(_DataIn[vec]);//通过神经网络获得输出
-			//根据每一个输出神经元的输出调整权值
-			for (size_t op = 0; op < _NumOutputs; ++op)
+			_ErrorSum = 0.0;
+			for (size_t hid = 0; hid < _NumHiddenLayers; ++hid)
 			{
-				double err = (_DataOut[vec][op] - outputs[op]) * outputs[op] * (1 - outputs[op]);//误差的平方
-				_ErrorSum += (_DataOut[vec][op] - outputs[op]) * (_DataOut[vec][op] - outputs[op]);//计算误差总和，用于暂停训练
-				_NeuronLayers[1]->_Neurons[op]->_Error = err;//更新误差（输出层）
-				cur_weight = _NeuronLayers[1]->_Neurons[op]->_Weight.begin();//标记第一个权重
-				cur_neuron_hidden = _NeuronLayers[0]->_Neurons.begin();//标记隐藏层第一个神经元
-				//对该神经元的每一个权重进行调整
-				while (cur_weight != _NeuronLayers[1]->_Neurons[op]->_Weight.end() - 1)
+				for (size_t i = 0; i < _DataIn.size(); ++i)
 				{
-					*cur_weight += err * _LearningRate * (*cur_neuron_hidden)->_Activation;//根据误差和学习率和阈值调整权重
-					cur_weight++;//指向下一个权重
-					cur_neuron_hidden++;//指向下一个隐藏层神经元
-				}
-				*cur_weight += err * _LearningRate * (-1);//偏移值
-			}
+					std::vector<double>::iterator _CurWeight;// current weight iterator
+					std::vector<_NeuronPtr>::iterator _CurNeuronOut; // current neuron output iterator
+					std::vector<_NeuronPtr>::iterator _CurNeuronHidden;//current hidden neuron iterator
 
-			cur_neuron_hidden = _NeuronLayers[0]->_Neurons.begin();//重新指向隐藏层第一个神经元
-			int n = 0;
-			//对每一个隐藏层神经元
-			while (cur_neuron_hidden != _NeuronLayers[0]->_Neurons.end() - 1)
-			{
-				float err = 0;
-				cur_neuron_out = _NeuronLayers[1]->_Neurons.begin();//指向第一个输出神经元
-				//对每一个输出神经元的第一个权重
-				while (cur_neuron_out != _NeuronLayers[1]->_Neurons.end())
-				{
-					err += (*cur_neuron_out)->_Error * (*cur_neuron_out)->_Weight[n];//某种计算误差的方法(BP)
-					cur_neuron_out++;
+					std::vector<_Type> _Outputs = _Update(_DataIn[i]);// update whole network
+
+					/*Adjust the weight according to the output of each output neuron*/
+					for (size_t j = 0; j < _NumOutputs; ++j)
+					{
+						double _Err = (_DataOut[i][j] - _Outputs[j]) * _Outputs[j] * (1 - _Outputs[j]);// error
+						_ErrorSum += (_DataOut[i][j] - _Outputs[j]) * (_DataOut[i][j] - _Outputs[j]);// sum of error squares
+
+						_NeuronLayers[hid + 1]->_Neurons[j]->_Error = _Err; // update output layer error
+						_CurWeight = _NeuronLayers[hid + 1]->_Neurons[j]->_Weight.begin(); // mark first weight
+						_CurNeuronHidden = _NeuronLayers[hid]->_Neurons.begin(); // mark first hidden neuron
+
+						/*Adjust the weight according to each output neuron*/
+						while (_CurWeight != _NeuronLayers[hid + 1]->_Neurons[j]->_Weight.end() - 1)
+						{
+							*_CurWeight += _Err * _LearningRate * (*_CurNeuronHidden)->_Activation;// adjust the weight
+							_CurWeight++; // next weight
+							_CurNeuronHidden++; // next hidden neuron
+						}
+
+						*_CurWeight += _Err * _LearningRate * (-1);// offset
+					}
+
+					_CurNeuronHidden = _NeuronLayers[hid]->_Neurons.begin();// the first neuron of next hidden layer
+
+					size_t _Cnt = 0;
+
+					/*Adjust output neuron*/
+					while (_CurNeuronHidden != _NeuronLayers[hid]->_Neurons.end() - 1)
+					{
+						double _Err = 0;
+						_CurNeuronOut = _NeuronLayers[hid + 1]->_Neurons.begin();// first neuron
+
+						/*Adjust each weight*/
+						while (_CurNeuronOut != _NeuronLayers[hid + 1]->_Neurons.end())
+						{
+							_Err += (*_CurNeuronOut)->_Error * (*_CurNeuronOut)->_Weight[_Cnt];
+							_CurNeuronOut++;
+						}
+
+						_Err *= (*_CurNeuronHidden)->_Activation * (1 - (*_CurNeuronHidden)->_Activation);
+
+						for (size_t j = 0; j < _NumInputs; ++j)
+						{
+							(*_CurNeuronHidden)->_Weight[j] += _Err * _LearningRate * _DataIn[i][j];// update hidden neuron weight
+						}
+
+						(*_CurNeuronHidden)->_Weight[_NumInputs] += _Err * _LearningRate * (-1);// offset
+						_CurNeuronHidden++;
+						_Cnt++;
+					}
 				}
-				err *= (*cur_neuron_hidden)->_Activation * (1 - (*cur_neuron_hidden)->_Activation);//某种计算误差的方法(BP)
-				for (size_t w = 0; w < _NumInputs; ++w)
-				{
-					(*cur_neuron_hidden)->_Weight[w] += err * _LearningRate * _DataIn[vec][w];//根据误差更新隐藏层的权重
-				}
-				(*cur_neuron_hidden)->_Weight[_NumInputs] += err * _LearningRate * (-1);//偏移值
-				cur_neuron_hidden++;//下一个隐藏层神经元
-				n++;//下一个权重
 			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Exception: " << e.what() << std::endl;
 		}
 
 		return true;
 	}
 
-	template <typename _T>
-	_NODISCARD std::vector<_T> _Update(std::vector<_T> inputs) noexcept
+	virtual std::vector<_Type> _Update(std::vector<_Type> inputs)
 	{
-		std::vector<_T> outputs;
-		size_t weight = 0;
+		std::vector<_Type> _Outputs = inputs;
 
 		if (inputs.size() != _NumInputs)
 		{
-			return outputs;
+			return { };
 		}
 
-		for (size_t i = 0; i < _NumHiddenLayers + 1; ++i) 
+		try
 		{
-			if (i > 0)
+			for (auto& HiddenLayer : _NeuronLayers)
 			{
-				inputs = outputs;
-			}
-
-			outputs.clear();
-			weight = 0;
-			for (size_t n = 0; n < _NeuronLayers[i]->_NumNeurons; ++n)
-			{
-				double netinput = 0.0;
-				size_t numInputs = _NeuronLayers[i]->_Neurons[n]->_NumInputs;
-
-				for (int k = 0; k < numInputs - 1; ++k) 
+				std::vector<_Type> _Inputs = _Outputs;
+				_Outputs.clear();
+				for (auto& Neuron : HiddenLayer->_Neurons)
 				{
-					netinput += _NeuronLayers[i]->_Neurons[n]->_Weight[k] * inputs[weight++];
-				}
+					size_t _Weight = 0;
+					double _NeuronInput = 0.0;
+					for (size_t k = 0; k < Neuron->_NumInputs - 1; ++k)
+					{
+						_NeuronInput += Neuron->_Weight[k] * _Inputs[_Weight++];
+					}
 
-				netinput += _NeuronLayers[i]->_Neurons[n]->_Weight[numInputs - 1] * (-1);
-				_NeuronLayers[i]->_Neurons[n]->_Activation = _Sigmoid(netinput, ACTIVATION_RESPONSE);
-				outputs.emplace_back(_NeuronLayers[i]->_Neurons[n]->_Activation);
-				weight = 0;
+					_NeuronInput += Neuron->_Weight[Neuron->_NumInputs - 1] * (-1);
+					Neuron->_Activation = _Sigmoid(_NeuronInput, ACTIVATION_RESPONSE);
+					_Outputs.emplace_back(static_cast<_Type>(Neuron->_Activation));
+				}
 			}
 		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Exception: " << e.what() << std::endl;
+		}
 
-		return outputs;
+		return _Outputs;
 	}
+
+protected:
 
 	_NODISCARD double _Sigmoid(double activation, double response) noexcept
 	{
@@ -226,12 +260,12 @@ protected:
 template <typename _Type>
 class _TrainByEpochs : public _TrainMethodBase<_Type>
 {
-	using _NeuronLayer = typename _TrainMethodBase<_Type>::_NeuronLayerPtr;
+	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
 	_TrainByEpochs(size_t& input_layers,
 		size_t& output_layers,
+		size_t& hidden_layers,
 		size_t& hidden_neurons,
-		size_t& hidden_layers_num,
 		double& learning_rate,
 		double& error_threshold,
 		long& train_epochs,
@@ -239,13 +273,13 @@ public:
 		bool& trained,
 		size_t& num_epochs,
 		bool& debug,
-		std::vector<_NeuronLayer>& layers, 
+		std::vector<_NeuronLayerPtr>& layers,
 		std::vector<std::vector<_Type>>& input_data, 
 		std::vector<std::vector<_Type>>& output_data) noexcept :
 		_TrainMethodBase<_Type>(input_layers, 
 			output_layers, 
-			hidden_neurons, 
-			hidden_layers_num, 
+			hidden_layers,
+			hidden_neurons,
 			learning_rate, 
 			error_threshold,
 			train_epochs,
@@ -262,17 +296,17 @@ public:
 
 	virtual ~_TrainByEpochs() noexcept { }
 
-	virtual bool _NetworkTraining() noexcept
+	virtual bool _NetworkTraining()
 	{
 		long cnt = _TrainMethodBase<_Type>::_TrainEpochs;
 		while (cnt--)
 		{
 			if (_TrainMethodBase<_Type>::_Debug)
 			{
-				std::cout << "ErrorSum:" << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
+				std::cout << "ErrorSum:" << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
 			}
 
-			_NetworkTraining();
+			_TrainMethodBase<_Type>::_NetworkTrainingEpoch();
 		}
 
 		_TrainMethodBase<_Type>::_Trained = true;
@@ -283,12 +317,12 @@ public:
 template <typename _Type>
 class _TrainByErrorSum : public _TrainMethodBase<_Type>
 {
-	using _NeuronLayer = typename _TrainMethodBase<_Type>::_NeuronLayerPtr;
+	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
 	_TrainByErrorSum(size_t& input_layers,
 		size_t& output_layers,
+		size_t& hidden_layers,
 		size_t& hidden_neurons,
-		size_t& hidden_layers_num,
 		double& learning_rate,
 		double& error_threshold,
 		long& train_epochs,
@@ -296,13 +330,13 @@ public:
 		bool& trained,
 		size_t& num_epochs,
 		bool& debug,
-		std::vector<_NeuronLayer>& layers,
+		std::vector<_NeuronLayerPtr>& layers,
 		std::vector<std::vector<_Type>>& input_data,
 		std::vector<std::vector<_Type>>& output_data) noexcept :
 		_TrainMethodBase<_Type>(input_layers,
 			output_layers,
+			hidden_layers,
 			hidden_neurons,
-			hidden_layers_num,
 			learning_rate,
 			error_threshold,
 			train_epochs,
@@ -319,16 +353,16 @@ public:
 
 	virtual ~_TrainByErrorSum() noexcept { }
 
-	virtual bool _NetworkTraining() noexcept
+	virtual bool _NetworkTraining()
 	{
 		while (_TrainMethodBase<_Type>::_ErrorSum > _TrainMethodBase<_Type>::_ErrorThresHold)
 		{
 			if (_TrainMethodBase<_Type>::_Debug)
 			{
-				std::cout << "ErrorSum:" << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
+				std::cout << "ErrorSum:" << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
 			}
 
-			_NetworkTraining();
+			_TrainMethodBase<_Type>::_NetworkTrainingEpoch();
 		}
 
 		_TrainMethodBase<_Type>::_Trained = true;
@@ -344,8 +378,8 @@ class bp_neural_networks
 public:
 	bp_neural_networks(size_t input_layers,
 		size_t output_layers,
+		size_t hidden_layers,
 		size_t hidden_neurons,
-		size_t hidden_layers_num,
 		double learning_rate,
 		double error_threshold,
 		long train_epochs,
@@ -356,8 +390,8 @@ public:
 		bool debug = false) noexcept :
 		_NumInputs(input_layers),
 		_NumOutputs(output_layers),
-		_NumHiddenLayers(hidden_neurons),
-		_NeuronsPerHiddenLayer(hidden_layers_num),
+		_NumHiddenLayers(hidden_layers),
+		_NeuronsPerHiddenLayer(hidden_neurons),
 		_LearningRate(learning_rate),
 		_ErrorThresHold(error_threshold),
 		_TrainEpochs(train_epochs),
@@ -394,76 +428,112 @@ public:
 		_DataOut.emplace_back(outdata);
 	}
 
+	void push_data(std::vector<std::vector<_Type>>& indata, std::vector<std::vector<_Type>>& outdata) noexcept
+	{
+		_DataIn = indata;
+		_DataOut = outdata;
+	}
+
 	bool train()
 	{
 		return _TrainMethodPtr->_NetworkTraining();
 	}
-
-	void save()
+	
+	std::vector<_Type> recognition(std::vector<_Type>& indata)
 	{
-		//ofstream WriteData(filename);
-		//string output;
-		//output = to_string(this->EachNums);
-		//WriteData << output << endl;
-		//output = to_string(this->FrameNums);
-		//WriteData << output << endl;
-		//output = to_string(this->VideoNumVectorSize);
-		//WriteData << output << endl;
-		//output = to_string(this->VideoTypeVectorSize);
-		//WriteData << output << endl;
-		//for (int i = 0; i < VideoTypeVectorSize; ++i) {
-		//	for (int j = 0; j < VideoNumVectorSize * FrameNums; ++j) {
-		//		for (int k = 0; k < EachNums; ++k) {
-		//			output = to_string(this->SetIn[i][j][k]);
-		//			WriteData << output << endl;
-		//		}
-		//	}
-		//}
-		//for (int i = 0; i < VideoTypeVectorSize; ++i) {
-		//	for (int j = 0; j < VideoNumVectorSize * FrameNums; ++j) {
-		//		for (int k = 0; k < VideoTypeVectorSize; ++k) {
-		//			output = to_string(this->SetOut[i][j][k]);
-		//			WriteData << output << endl;
-		//		}
-		//	}
-		//}
-		//WriteData.clear(); //为了代码具有移植性和复用性, 这句最好带上,清除标志位.有些系统若不清理可能会出现问题.
-		//WriteData.close();
+		return _TrainMethodPtr->_Update(indata);
 	}
 
-	void load()
+	void save(std::string filename)
 	{
-		//char buffer[100];
-		//ifstream ReadData(filename);
-		//if (ReadData.is_open())
-		//{
-		//	ReadData.getline(buffer, 100);
-		//	this->EachNums = stringToNum<int>(buffer);
-		//	ReadData.getline(buffer, 100);
-		//	this->FrameNums = stringToNum<int>(buffer);
-		//	ReadData.getline(buffer, 100);
-		//	this->VideoNumVectorSize = stringToNum<int>(buffer);
-		//	ReadData.getline(buffer, 100);
-		//	this->VideoTypeVectorSize = stringToNum<int>(buffer);
-		//	for (int i = 0; i < VideoTypeVectorSize; ++i) {
-		//		for (int j = 0; j < VideoNumVectorSize * FrameNums; ++j) {
-		//			for (int k = 0; k < EachNums; ++k) {
-		//				ReadData.getline(buffer, 100);
-		//				this->SetIn[i][j][k] = stringToNum<float>(buffer);
-		//			}
-		//		}
-		//	}
-		//	for (int i = 0; i < VideoTypeVectorSize; ++i) {
-		//		for (int j = 0; j < VideoNumVectorSize * FrameNums; ++j) {
-		//			for (int k = 0; k < VideoTypeVectorSize; ++k) {
-		//				ReadData.getline(buffer, 100);
-		//				this->SetOut[i][j][k] = stringToNum<float>(buffer);
-		//			}
-		//		}
-		//	}
-		//}
-		//ReadData.clear(); //为了代码具有移植性和复用性, 这句最好带上,清除标志位.有些系统若不清理可能会出现问题.
-		//ReadData.close();
+		std::ofstream _WriteData(filename);
+		std::string _Output;
+		std::stringstream _StrStream;
+
+		_Output = std::to_string(this->_NumInputs);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_NumOutputs);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_NumHiddenLayers);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_NeuronsPerHiddenLayer);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_NumEpochs);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_LearningRate);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_ErrorSum);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_ErrorThresHold);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_TrainEpochs);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_Debug);
+		_WriteData << _Output << std::endl;
+		_Output = std::to_string(this->_Trained);
+		_WriteData << _Output << std::endl;
+
+		for (auto& HidLayer : this->_NeuronLayers)
+		{
+			for (auto& Neuron : HidLayer->_Neurons)
+			{
+				for (auto& Weight : Neuron->_Weight)
+				{
+					_StrStream.str(std::string());
+					_StrStream << std::setprecision(18) << Weight;
+					_WriteData << _StrStream.str() << std::endl;
+				}
+			}
+		}
+		
+		_WriteData.clear();
+		_WriteData.close();
+	}
+
+	void load(std::string filename)
+	{
+		char _Buffer[128] = { 0 };
+		std::ifstream _ReadData(filename);
+		if (_ReadData.is_open())
+		{
+			_ReadData.getline(_Buffer, 128);
+			this->_NumInputs = _StringToNum<size_t>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_NumOutputs = _StringToNum<size_t>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_NumHiddenLayers = _StringToNum<size_t>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_NeuronsPerHiddenLayer = _StringToNum<size_t>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_NumEpochs = _StringToNum<size_t>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_LearningRate = _StringToNum<double>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_ErrorSum = _StringToNum<double>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_ErrorThresHold = _StringToNum<double>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_TrainEpochs = _StringToNum<long>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_Debug = _StringToNum<bool>(_Buffer);
+			_ReadData.getline(_Buffer, 128);
+			this->_Trained = _StringToNum<bool>(_Buffer);
+			
+			for (auto& HidLayer : this->_NeuronLayers)
+			{
+				for (auto& Neuron : HidLayer->_Neurons)
+				{
+					for (auto& Weight : Neuron->_Weight)
+					{
+						_ReadData.getline(_Buffer, 128);
+						Weight = _StringToNum<double>(_Buffer);
+					}
+				}
+			}
+		}
+
+		_ReadData.clear();
+		_ReadData.close();
 	}
 
 private:
@@ -471,33 +541,24 @@ private:
 	{
 		if (_NumHiddenLayers > 0) 
 		{
-			_NeuronLayers.emplace_back(_NeuronLayer(_NeuronsPerHiddenLayer, _NumInputs));		//输入层
-			for (int i = 0; i < _NumHiddenLayers - 1; ++i) 
-			{
-				_NeuronLayers.emplace_back(_NeuronLayer(_NeuronsPerHiddenLayer, _NeuronsPerHiddenLayer));//隐层
-			}
-			_NeuronLayers.emplace_back(_NeuronLayer(_NumOutputs, _NeuronsPerHiddenLayer));		//输出层
-		}
-		else 
-		{
-			_NeuronLayers.emplace_back(_NeuronLayer(_NumOutputs, _NumInputs));
-		}
+			_NeuronLayers.emplace_back(std::make_shared<_NeuronLayer>(_NeuronsPerHiddenLayer, _NumInputs));		//first hidden layer
 
-		for (size_t i = 0; i < _NumHiddenLayers + 1; ++i) //权值维数比隐层数多1
-		{								
-			for (size_t j = 0; j < _NeuronLayers[i]->_NumNeurons; ++j)
+			for (size_t i = 0; i < _NumHiddenLayers - 1; ++i) 
 			{
-				for (size_t k = 0; k < _NeuronLayers[i]->_Neurons[j]->_NumInputs; ++k)
-				{
-					_NeuronLayers[i]->_Neurons[j]->_Weight[k] = _RandomClamped();//随机生成权重
-				}
+				_NeuronLayers.emplace_back(std::make_shared<_NeuronLayer>(_NeuronsPerHiddenLayer, _NeuronsPerHiddenLayer));//other hidden layer
 			}
+
+			_NeuronLayers.emplace_back(std::make_shared<_NeuronLayer>(_NumOutputs, _NeuronsPerHiddenLayer));		// output
+		}
+		else
+		{
+			_NeuronLayers.emplace_back(std::make_shared<_NeuronLayer>(_NumOutputs, _NumInputs));
 		}
 	}
 
 	_NODISCARD double _RandomClamped()
 	{
-		return static_cast<double>(-1 + 2 * (rand() / ((double)RAND_MAX + 1)));
+		return static_cast<double>(-1 + 2 * (rand() / (static_cast<double>(RAND_MAX) + 1)));
 	}
 
 	template <typename _T>
