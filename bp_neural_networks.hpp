@@ -444,7 +444,7 @@ public:
 		return _TrainMethodPtr->_Update(indata);
 	}
 
-	void save(std::string filename)
+	void save(std::string filename) noexcept
 	{
 		std::ofstream _WriteData(filename);
 		std::string _Output;
@@ -490,7 +490,7 @@ public:
 		_WriteData.close();
 	}
 
-	void load(std::string filename)
+	void load(std::string filename) noexcept
 	{
 		char _Buffer[128] = { 0 };
 		std::ifstream _ReadData(filename);
@@ -537,7 +537,7 @@ public:
 	}
 
 private:
-	void _CreateNetworks() 
+	void _CreateNetworks() noexcept
 	{
 		if (_NumHiddenLayers > 0) 
 		{
@@ -556,13 +556,13 @@ private:
 		}
 	}
 
-	_NODISCARD double _RandomClamped()
+	_NODISCARD double _RandomClamped() noexcept
 	{
 		return static_cast<double>(-1 + 2 * (rand() / (static_cast<double>(RAND_MAX) + 1)));
 	}
 
 	template <typename _T>
-	_NODISCARD _T _StringToNum(const std::string& str)
+	_NODISCARD _T _StringToNum(const std::string& str) noexcept
 	{
 		std::istringstream iss(str);
 		_T num;
