@@ -241,17 +241,17 @@ protected:
 	}
 
 protected:
-	size_t& _NumInputs;//输入量
-	size_t& _NumOutputs;//输出量
-	size_t& _NumHiddenLayers;//隐藏层数
-	size_t& _NeuronsPerHiddenLayer;//隐藏层拥有的神经元
-	size_t& _NumEpochs;//代数
-	double& _LearningRate;//学习率
-	double& _ErrorSum;//误差总值
-	double& _ErrorThresHold;     //误差阈值（什么时候停止训练）
-	long& _TrainEpochs;     //训练次数（什么时候停止训练）
-	bool& _Debug;//是否输出误差值
-	bool& _Trained;//是否已经训练过
+	size_t& _NumInputs;// input data number
+	size_t& _NumOutputs;// output data number
+	size_t& _NumHiddenLayers;// hidden layer number
+	size_t& _NeuronsPerHiddenLayer;//hidden layer neuron
+	size_t& _NumEpochs;// epochs
+	double& _LearningRate;// learn rate
+	double& _ErrorSum; // error summary
+	double& _ErrorThresHold; // error threshold
+	long& _TrainEpochs;     // train times
+	bool& _Trained;
+	bool _Debug;
 	std::vector<_NeuronLayerPtr>& _NeuronLayers;
 	std::vector<std::vector<_Type>>& _DataIn;
 	std::vector<std::vector<_Type>>& _DataOut;
@@ -303,7 +303,7 @@ public:
 		{
 			if (_TrainMethodBase<_Type>::_Debug)
 			{
-				std::cout << "ErrorSum:" << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
+				std::cout << "ErrorSum: " << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
 			}
 
 			_TrainMethodBase<_Type>::_NetworkTrainingEpoch();
@@ -359,7 +359,7 @@ public:
 		{
 			if (_TrainMethodBase<_Type>::_Debug)
 			{
-				std::cout << "ErrorSum:" << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
+				std::cout << "ErrorSum: " << std::setprecision(12) << _TrainMethodBase<_Type>::_ErrorSum << std::endl;
 			}
 
 			_TrainMethodBase<_Type>::_NetworkTrainingEpoch();
@@ -571,17 +571,17 @@ private:
 	}
 
 private:
-	size_t _NumInputs;//输入量
-	size_t _NumOutputs;//输出量
-	size_t _NumHiddenLayers;//隐藏层数
-	size_t _NeuronsPerHiddenLayer;//隐藏层拥有的神经元
-	size_t _NumEpochs;//代数
-	double _LearningRate;//学习率
-	double _ErrorSum;//误差总值
-	double _ErrorThresHold;     //误差阈值（什么时候停止训练）
-	long _TrainEpochs;     //训练次数（什么时候停止训练）
-	bool _Debug;//是否输出误差值
-	bool _Trained;//是否已经训练过
+	size_t _NumInputs;// input data
+	size_t _NumOutputs;// output data
+	size_t _NumHiddenLayers;// hidden layer number
+	size_t _NeuronsPerHiddenLayer;// hidden layer neuron
+	size_t _NumEpochs;// epochs
+	double _LearningRate;// learning rate
+	double _ErrorSum;// error summary
+	double _ErrorThresHold; // error threshold
+	long _TrainEpochs; // train times 
+	bool _Debug;
+	bool _Trained;
 
 	std::vector<_NeuronLayerPtr> _NeuronLayers;//层数
 	std::vector<std::vector<_Type>> _DataIn;
