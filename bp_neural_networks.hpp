@@ -583,7 +583,7 @@ private:
 	bool _Debug;
 	bool _Trained;
 
-	std::vector<_NeuronLayerPtr> _NeuronLayers;//²ãÊý
+	std::vector<_NeuronLayerPtr> _NeuronLayers;// neuron layers
 	std::vector<std::vector<_Type>> _DataIn;
 	std::vector<std::vector<_Type>> _DataOut;
 	std::shared_ptr<_TrainMethodBase<_Type>> _TrainMethodPtr;
