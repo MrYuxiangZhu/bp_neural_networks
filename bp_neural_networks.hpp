@@ -116,6 +116,37 @@ public:
 		
 	}
 
+	void operator ()(size_t& input_layers,
+		size_t& output_layers,
+		size_t& hidden_layers,
+		size_t& hidden_neurons,
+		double& learning_rate,
+		double& error_threshold,
+		long& train_epochs,
+		double& error_sum,
+		bool& trained,
+		size_t& num_epochs,
+		bool& debug,
+		std::vector<_NeuronLayerPtr>& layers,
+		std::vector<std::vector<_Type>>& input_data,
+		std::vector<std::vector<_Type>>& output_data)
+	{
+		_NumInputs = input_layers;
+		_NumOutputs = output_layers;
+		_NumHiddenLayers = hidden_layers;
+		_NeuronsPerHiddenLayer = hidden_neurons;
+		_LearningRate = learning_rate;
+		_ErrorThresHold = error_threshold;
+		_TrainEpochs = train_epochs;
+		_ErrorSum = error_sum;
+		_Trained = trained;
+		_NumEpochs = num_epochs;
+		_Debug = debug;
+		_NeuronLayers = layers;
+		_DataIn = input_data;
+		_DataOut = output_data;
+	}
+
 	virtual ~_TrainMethodBase() noexcept { }
 
 	virtual bool _NetworkTraining() = 0;
@@ -397,51 +428,94 @@ public:
 		_TrainEpochs(train_epochs),
 		_ErrorSum(error_sum),
 		_Trained(trained),
-		_NumEpochs(num_epochs)
+		_NumEpochs(num_epochs),
+		_StopType(stop_type),
+		_Debug(debug)
 	{
-		_CreateNetworks();
+		this->_CreateNetworks();
+		this->_CreateTrainMethod();
+	}
+	
+	bp_neural_networks(const bp_neural_networks& network) noexcept
+	{
+		this->_CopyConstructFrom(network);
+	}
 
-		switch (stop_type)
-		{
-		case STOP_TYPE::COUNT:
-			_TrainMethodPtr = std::make_shared<_TrainByEpochs<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
-											_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
-											_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
-											_NeuronLayers, _DataIn, _DataOut);
-			break;
-		case STOP_TYPE::ERROR_SUM:
-			_TrainMethodPtr = std::make_shared<_TrainByErrorSum<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
-											_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
-											_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, debug, \
-											_NeuronLayers, _DataIn, _DataOut);
-			break;
-		default:
-			break;
-		}
+	template <typename _Ty>
+	bp_neural_networks(const bp_neural_networks<_Ty>& network) noexcept
+	{
+		this->_CopyConstructFrom(network);
+	}
+
+	bp_neural_networks(bp_neural_networks&& network) noexcept
+	{
+		this->_MoveConstructFrom(std::move(network));
+	}
+
+	template <typename _Ty>
+	bp_neural_networks(bp_neural_networks<_Ty>&& network) noexcept
+	{
+		this->_MoveConstructFrom(std::move(network));
+	}
+
+	bp_neural_networks& operator = (const bp_neural_networks& network) noexcept
+	{
+		this->_CopyConstructFrom(network);
+		return *this;
+	}
+
+	template <typename _Ty>
+	bp_neural_networks& operator = (const bp_neural_networks<_Ty>& network) noexcept
+	{
+		this->_CopyConstructFrom(network);
+	}
+
+	bp_neural_networks& operator = (bp_neural_networks&& network) noexcept
+	{
+		this->_MoveConstructFrom(std::move(network));
+		return *this;
+	}
+
+	template <typename _Ty>
+	bp_neural_networks& operator = (bp_neural_networks<_Ty>&& network) noexcept
+	{
+		this->_MoveConstructFrom(std::move(network));
 	}
 
 	~bp_neural_networks() noexcept { }
 
 	void push_data(std::vector<_Type>& indata, std::vector<_Type>& outdata) noexcept
 	{
-		_DataIn.emplace_back(indata);
-		_DataOut.emplace_back(outdata);
+		this->_DataIn.emplace_back(indata);
+		this->_DataOut.emplace_back(outdata);
+	}
+
+	void push_data(std::vector<_Type>&& indata, std::vector<_Type>&& outdata) noexcept
+	{
+		this->_DataIn.emplace_back(std::move(indata));
+		this->_DataOut.emplace_back(std::move(outdata));
 	}
 
 	void push_data(std::vector<std::vector<_Type>>& indata, std::vector<std::vector<_Type>>& outdata) noexcept
 	{
-		_DataIn = indata;
-		_DataOut = outdata;
+		this->_DataIn = indata;
+		this->_DataOut = outdata;
+	}
+
+	void push_data(std::vector<std::vector<_Type>>&& indata, std::vector<std::vector<_Type>>&& outdata) noexcept
+	{
+		this->_DataIn = std::move(indata);
+		this->_DataOut = std::move(outdata);
 	}
 
 	bool train()
 	{
-		return _TrainMethodPtr->_NetworkTraining();
+		return this->_TrainMethodPtr->_NetworkTraining();
 	}
 	
 	std::vector<_Type> recognition(std::vector<_Type>& indata)
 	{
-		return _TrainMethodPtr->_Update(indata);
+		return this->_TrainMethodPtr->_Update(indata);
 	}
 
 	void save(std::string filename) noexcept
@@ -537,8 +611,81 @@ public:
 	}
 
 private:
+	template <typename _Ty, typename = typename std::enable_if<std::is_same<_Type, _Ty>::value, bool>::type>
+	void _CopyConstructFrom(const bp_neural_networks<_Ty>& network) noexcept
+	{
+		this->_NumInputs = network._NumInputs;
+		this->_NumOutputs = network._NumOutputs;
+		this->_NumHiddenLayers = network._NumHiddenLayers;
+		this->_NeuronsPerHiddenLayer = network._NeuronsPerHiddenLayer;
+		this->_NumEpochs = network._NumEpochs;
+		this->_LearningRate = network._LearningRate;
+		this->_ErrorSum = network._ErrorSum;
+		this->_ErrorThresHold = network._ErrorThresHold;
+		this->_TrainEpochs = network._TrainEpochs;
+		this->_Debug = network._Debug;
+		this->_Trained = network._Trained;
+		this->_StopType = network._StopType;
+		this->_DataIn = network._DataIn;
+		this->_DataOut = network._DataOut;
+		this->_CreateNetworks();
+		this->_CreateTrainMethod();
+	}
+
+	template <typename _Ty, typename = typename std::enable_if<std::is_same<_Type, _Ty>::value, bool>::type>
+	void _MoveConstructFrom(bp_neural_networks<_Ty>&& network) noexcept
+	{
+		this->_NumInputs = network._NumInputs;
+		this->_NumOutputs = network._NumOutputs;
+		this->_NumHiddenLayers = network._NumHiddenLayers;
+		this->_NeuronsPerHiddenLayer = network._NeuronsPerHiddenLayer;
+		this->_NumEpochs = network._NumEpochs;
+		this->_LearningRate = network._LearningRate;
+		this->_ErrorSum = network._ErrorSum;
+		this->_ErrorThresHold = network._ErrorThresHold;
+		this->_TrainEpochs = network._TrainEpochs;
+		this->_Debug = network._Debug;
+		this->_Trained = network._Trained;
+		this->_StopType = network._StopType;
+		this->_DataIn = std::move(network._DataIn);
+		this->_DataOut = std::move(network._DataOut);
+		this->_NeuronLayers = std::move(network._NeuronLayers);
+		this->_TrainMethodPtr = std::move(network._TrainMethodPtr);
+
+		this->_TrainMethodPtr->operator()(this->_NumInputs, this->_NumOutputs, this->_NumHiddenLayers, \
+			this->_NeuronsPerHiddenLayer, this->_LearningRate, this->_ErrorThresHold, \
+			this->_TrainEpochs, this->_ErrorSum, this->_Trained, this->_NumEpochs, this->_Debug, \
+			this->_NeuronLayers, this->_DataIn, this->_DataOut);
+	}
+
+	void _CreateTrainMethod() noexcept
+	{
+		switch (_StopType)
+		{
+		case STOP_TYPE::COUNT:
+			_TrainMethodPtr = std::make_shared<_TrainByEpochs<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
+				_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
+				_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, _Debug, \
+				_NeuronLayers, _DataIn, _DataOut);
+			break;
+		case STOP_TYPE::ERROR_SUM:
+			_TrainMethodPtr = std::make_shared<_TrainByErrorSum<_Type>>(_NumInputs, _NumOutputs, _NumHiddenLayers, \
+				_NeuronsPerHiddenLayer, _LearningRate, _ErrorThresHold, \
+				_TrainEpochs, _ErrorSum, _Trained, _NumEpochs, _Debug, \
+				_NeuronLayers, _DataIn, _DataOut);
+			break;
+		default:
+			break;
+		}
+	}
+
 	void _CreateNetworks() noexcept
 	{
+		if (!_NeuronLayers.empty())
+		{
+			_NeuronLayers.clear();
+		}
+
 		if (_NumHiddenLayers > 0) 
 		{
 			_NeuronLayers.emplace_back(std::make_shared<_NeuronLayer>(_NeuronsPerHiddenLayer, _NumInputs));		//first hidden layer
@@ -582,6 +729,7 @@ private:
 	long _TrainEpochs; // train times 
 	bool _Debug;
 	bool _Trained;
+	STOP_TYPE _StopType;
 
 	std::vector<_NeuronLayerPtr> _NeuronLayers;// neuron layers
 	std::vector<std::vector<_Type>> _DataIn;

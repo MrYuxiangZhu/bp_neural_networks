@@ -47,11 +47,14 @@ int main()
     input_data.push_back(input4);
     output_data.push_back(output4);
 
-    bp_neural_networks<double> bp(2, 1, 2, 20, 0.1, 0.01, 10000, 1, false, 0, STOP_TYPE::COUNT, true);
+    bp_neural_networks<double> bp(2, 1, 3, 30, 0.1, 0.001, 100000, 1, false, 0, STOP_TYPE::ERROR_SUM, true);
     bp.push_data(input_data, output_data);
     bool trained = bp.train();
-    std::vector<double> res = bp.recognition(input2);
-    //bp.save("test.txt");
-    //bp.load("test.txt");
+    //bp.load("weight.txt");
+    //std::vector<double> res = bp.recognition(input2);
+    bp.save("weight.txt");
+    //bp_neural_networks<double> bp2(std::move(bp));
+    //bp2.push_data(input_data, output_data);
+    //bool trained = bp2.train();
     return 0;
 }
