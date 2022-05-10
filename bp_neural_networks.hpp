@@ -195,7 +195,7 @@ public:
 		return true;
 	}
 
-	virtual std::vector<_Type> _Update(std::vector<_Type> inputs)
+	virtual std::vector<_Type> _Update(std::vector<_Type>& inputs)
 	{
 		std::vector<_Type> _Outputs = inputs;
 
