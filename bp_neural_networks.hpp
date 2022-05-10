@@ -390,6 +390,7 @@ public:
 	bp_neural_networks& operator = (const bp_neural_networks<_Ty>& network) noexcept
 	{
 		this->_CopyConstructFrom(network);
+		return *this;
 	}
 
 	bp_neural_networks& operator = (bp_neural_networks&& network) noexcept
@@ -402,6 +403,7 @@ public:
 	bp_neural_networks& operator = (bp_neural_networks<_Ty>&& network) noexcept
 	{
 		this->_MoveConstructFrom(std::move(network));
+		return *this;
 	}
 
 	~bp_neural_networks() noexcept { }
