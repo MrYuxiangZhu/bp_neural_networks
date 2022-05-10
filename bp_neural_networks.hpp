@@ -84,20 +84,9 @@ class _TrainMethodBase
 	using _NeuronPtr = std::shared_ptr<_Neuron>;
 	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
-	_TrainMethodBase(size_t& input_layers,
-		size_t& output_layers,
-		size_t& hidden_layers,
-		size_t& hidden_neurons,
-		double& learning_rate,
-		double& error_threshold,
-		long& train_epochs,
-		double& error_sum,
-		bool& trained,
-		size_t& num_epochs, 
-		bool& debug,
-		std::vector<_NeuronLayerPtr>& layers, 
-		std::vector<std::vector<_Type>>& input_data, 
-		std::vector<std::vector<_Type>>& output_data) noexcept :
+	_TrainMethodBase(size_t& input_layers, size_t& output_layers, size_t& hidden_layers, size_t& hidden_neurons, double& learning_rate, \
+		double& error_threshold, long& train_epochs, double& error_sum, bool& trained, size_t& num_epochs, bool& debug, \
+		std::vector<_NeuronLayerPtr>& layers, std::vector<std::vector<_Type>>& input_data, std::vector<std::vector<_Type>>& output_data) noexcept : \
 		_NumInputs(input_layers),
 		_NumOutputs(output_layers),
 		_NumHiddenLayers(hidden_layers),
@@ -116,20 +105,9 @@ public:
 		
 	}
 
-	void operator ()(size_t& input_layers,
-		size_t& output_layers,
-		size_t& hidden_layers,
-		size_t& hidden_neurons,
-		double& learning_rate,
-		double& error_threshold,
-		long& train_epochs,
-		double& error_sum,
-		bool& trained,
-		size_t& num_epochs,
-		bool& debug,
-		std::vector<_NeuronLayerPtr>& layers,
-		std::vector<std::vector<_Type>>& input_data,
-		std::vector<std::vector<_Type>>& output_data)
+	void operator ()(size_t& input_layers, size_t& output_layers, size_t& hidden_layers, size_t& hidden_neurons, double& learning_rate,\
+		double& error_threshold, long& train_epochs, double& error_sum, bool& trained, size_t& num_epochs, bool& debug, \
+		std::vector<_NeuronLayerPtr>& layers, std::vector<std::vector<_Type>>& input_data, std::vector<std::vector<_Type>>& output_data)
 	{
 		_NumInputs = input_layers;
 		_NumOutputs = output_layers;
@@ -282,7 +260,7 @@ protected:
 	double& _ErrorThresHold; // error threshold
 	long& _TrainEpochs;     // train times
 	bool& _Trained;
-	bool _Debug;
+	bool& _Debug;
 	std::vector<_NeuronLayerPtr>& _NeuronLayers;
 	std::vector<std::vector<_Type>>& _DataIn;
 	std::vector<std::vector<_Type>>& _DataOut;
@@ -293,34 +271,11 @@ class _TrainByEpochs : public _TrainMethodBase<_Type>
 {
 	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
-	_TrainByEpochs(size_t& input_layers,
-		size_t& output_layers,
-		size_t& hidden_layers,
-		size_t& hidden_neurons,
-		double& learning_rate,
-		double& error_threshold,
-		long& train_epochs,
-		double& error_sum,
-		bool& trained,
-		size_t& num_epochs,
-		bool& debug,
-		std::vector<_NeuronLayerPtr>& layers,
-		std::vector<std::vector<_Type>>& input_data, 
-		std::vector<std::vector<_Type>>& output_data) noexcept :
-		_TrainMethodBase<_Type>(input_layers, 
-			output_layers, 
-			hidden_layers,
-			hidden_neurons,
-			learning_rate, 
-			error_threshold,
-			train_epochs,
-			error_sum,
-			trained,
-			num_epochs,
-			debug,
-			layers, 
-			input_data, 
-			output_data)
+	_TrainByEpochs(size_t& input_layers, size_t& output_layers, size_t& hidden_layers, size_t& hidden_neurons, double& learning_rate, \
+		double& error_threshold, long& train_epochs, double& error_sum, bool& trained, size_t& num_epochs, bool& debug, \
+		std::vector<_NeuronLayerPtr>& layers, std::vector<std::vector<_Type>>& input_data, std::vector<std::vector<_Type>>& output_data) noexcept : \
+		_TrainMethodBase<_Type>(input_layers, output_layers, hidden_layers, hidden_neurons, learning_rate, error_threshold, \
+			train_epochs, error_sum, trained, num_epochs, debug, layers, input_data, output_data)
 	{
 
 	}
@@ -350,34 +305,11 @@ class _TrainByErrorSum : public _TrainMethodBase<_Type>
 {
 	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
-	_TrainByErrorSum(size_t& input_layers,
-		size_t& output_layers,
-		size_t& hidden_layers,
-		size_t& hidden_neurons,
-		double& learning_rate,
-		double& error_threshold,
-		long& train_epochs,
-		double& error_sum,
-		bool& trained,
-		size_t& num_epochs,
-		bool& debug,
-		std::vector<_NeuronLayerPtr>& layers,
-		std::vector<std::vector<_Type>>& input_data,
-		std::vector<std::vector<_Type>>& output_data) noexcept :
-		_TrainMethodBase<_Type>(input_layers,
-			output_layers,
-			hidden_layers,
-			hidden_neurons,
-			learning_rate,
-			error_threshold,
-			train_epochs,
-			error_sum,
-			trained,
-			num_epochs,
-			debug,
-			layers,
-			input_data,
-			output_data)
+	_TrainByErrorSum(size_t& input_layers, size_t& output_layers, size_t& hidden_layers, size_t& hidden_neurons, double& learning_rate, \
+		double& error_threshold, long& train_epochs, double& error_sum, bool& trained, size_t& num_epochs, bool& debug, \
+		std::vector<_NeuronLayerPtr>& layers, std::vector<std::vector<_Type>>& input_data, std::vector<std::vector<_Type>>& output_data) noexcept : \
+		_TrainMethodBase<_Type>(input_layers, output_layers, hidden_layers, hidden_neurons, learning_rate, error_threshold, \
+			train_epochs, error_sum, trained, num_epochs, debug, layers, input_data, output_data)
 	{
 
 	}
@@ -407,18 +339,8 @@ class bp_neural_networks
 	using _NeuronPtr = std::shared_ptr<_Neuron>;
 	using _NeuronLayerPtr = std::shared_ptr<_NeuronLayer>;
 public:
-	bp_neural_networks(size_t input_layers,
-		size_t output_layers,
-		size_t hidden_layers,
-		size_t hidden_neurons,
-		double learning_rate,
-		double error_threshold,
-		long train_epochs,
-		double error_sum,
-		bool trained,
-		size_t num_epochs,
-		STOP_TYPE stop_type = STOP_TYPE::COUNT,
-		bool debug = false) noexcept :
+	bp_neural_networks(size_t input_layers, size_t output_layers, size_t hidden_layers, size_t hidden_neurons, double learning_rate, \
+		double error_threshold, long train_epochs, double error_sum, bool trained, size_t num_epochs, STOP_TYPE stop_type = STOP_TYPE::COUNT, bool debug = false) noexcept : \
 		_NumInputs(input_layers),
 		_NumOutputs(output_layers),
 		_NumHiddenLayers(hidden_layers),
