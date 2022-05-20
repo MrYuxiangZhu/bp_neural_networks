@@ -47,10 +47,10 @@ protected:
 	}
 
 public:
-	size_t _NumInputs;	// number of neuron input
-	double _Activation; // neuron output, determined by input and linear function
-	double _Error;		// error
-	std::vector<double> _Weight;// weight
+	size_t _NumInputs { 0 };	// number of neuron input
+	double _Activation { 0.0 }; // neuron output, determined by input and linear function
+	double _Error { 0.0 };		// error
+	std::vector<double> _Weight { };// weight
 };
 
 class _NeuronLayer
@@ -74,8 +74,8 @@ public:
 	~_NeuronLayer() noexcept { }
 
 public:
-	size_t _NumNeurons; // neuron number
-	std::vector<_NeuronPtr> _Neurons; // neuron pointer vector
+	size_t _NumNeurons { 0 }; // neuron number
+	std::vector<_NeuronPtr> _Neurons { }; // neuron pointer vector
 };
 
 template <typename _Type>
@@ -642,21 +642,21 @@ private:
 	}
 
 private:
-	size_t _NumInputs;// input data
-	size_t _NumOutputs;// output data
-	size_t _NumHiddenLayers;// hidden layer number
-	size_t _NeuronsPerHiddenLayer;// hidden layer neuron
-	size_t _NumEpochs;// epochs
-	double _LearningRate;// learning rate
-	double _ErrorSum;// error summary
-	double _ErrorThresHold; // error threshold
-	long _TrainEpochs; // train times 
-	bool _Debug;
-	bool _Trained;
-	STOP_TYPE _StopType;
+	size_t _NumInputs { 0 };// input data
+	size_t _NumOutputs { 0 };// output data
+	size_t _NumHiddenLayers { 0 };// hidden layer number
+	size_t _NeuronsPerHiddenLayer { 0 };// hidden layer neuron
+	size_t _NumEpochs { 0 };// epochs
+	double _LearningRate { 0.0 };// learning rate
+	double _ErrorSum { 0.0 };// error summary
+	double _ErrorThresHold { 0.0 }; // error threshold
+	long _TrainEpochs { 0 }; // train times 
+	bool _Debug { false };
+	bool _Trained { false };
+	STOP_TYPE _StopType { STOP_TYPE::COUNT };
 
-	std::vector<_NeuronLayerPtr> _NeuronLayers;// neuron layers
-	std::vector<std::vector<_Type>> _DataIn;
-	std::vector<std::vector<_Type>> _DataOut;
-	std::shared_ptr<_TrainMethodBase<_Type>> _TrainMethodPtr;
+	std::vector<_NeuronLayerPtr> _NeuronLayers { };// neuron layers
+	std::vector<std::vector<_Type>> _DataIn { };
+	std::vector<std::vector<_Type>> _DataOut { };
+	std::shared_ptr<_TrainMethodBase<_Type>> _TrainMethodPtr { nullptr };
 };
