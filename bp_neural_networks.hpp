@@ -1,11 +1,13 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <math.h>
 
 #define ACTIVATION_RESPONSE 1.0
 
